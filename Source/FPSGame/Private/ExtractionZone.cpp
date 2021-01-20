@@ -41,7 +41,7 @@ void AExtractionZone::HandleOverlap(class UPrimitiveComponent* HitComp, class AA
 
 		if (GM)
 		{
-			GM->CompleteMission(MyPawn);
+			GM->CompleteMission(MyPawn, true);
 		}
 	}
 	else

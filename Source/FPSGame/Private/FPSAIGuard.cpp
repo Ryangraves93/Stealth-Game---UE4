@@ -3,6 +3,8 @@
 
 #include "FPSAIGuard.h"
 #include "Perception/PawnSensingComponent.h"
+#include "FPSGameMode.h"
+#include "GameFramework/Actor.h"
 #include "DrawDebugHelpers.h"
 
 // Sets default values
@@ -15,6 +17,8 @@ AFPSAIGuard::AFPSAIGuard()
 
 	PawnSensingComp->OnSeePawn.AddDynamic(this, &AFPSAIGuard::OnPawnSeen);
 	PawnSensingComp->OnHearNoise.AddDynamic(this, &AFPSAIGuard::OnNoiseHeard);
+
+	GuardState = EAIState::Idle;
 }
 
 // Called when the game starts or when spawned
@@ -32,10 +36,23 @@ void AFPSAIGuard::OnPawnSeen(APawn* SeenPawn)
 		return;
 	}
 	DrawDebugSphere(GetWorld(), SeenPawn->GetActorLocation(), 32.0f, 12, FColor::Red, false, 10.f);
+
+	AFPSGameMode* GM = Cast<AFPSGameMode>(GetWorld()->GetAuthGameMode());
+	if (GM)
+	{
+		GM->CompleteMission(SeenPawn, false);
+	}
+
+	SetGuardState(EAIState::Alerted);
 }
 
 void AFPSAIGuard::OnNoiseHeard(APawn* NoiseInstigator, const FVector& Location, float Volume)
 {
+	if (GuardState == EAIState::Alerted)
+	{
+		return;
+	}
+
 	DrawDebugSphere(GetWorld(), Location, 32.0f, 12, FColor::Green, false, 10.f);
 
 	FVector Direction = Location - GetActorLocation();
@@ -48,11 +65,44 @@ void AFPSAIGuard::OnNoiseHeard(APawn* NoiseInstigator, const FVector& Location, 
 
 	GetWorldTimerManager().ClearTimer(TimerHandle_ResetOrientation);
 	GetWorldTimerManager().SetTimer(TimerHandle_ResetOrientation, this, &AFPSAIGuard::ResetOrientation, 3.0f, false);
+
+	SetGuardState(EAIState::Suspicious);
 }
 
 void AFPSAIGuard::ResetOrientation()
 {
+	if (GuardState == EAIState::Alerted)
+	{
+		return;
+	}
+
 	SetActorRotation(OriginalRotation);
+
+	SetGuardState(EAIState::Idle);
+}
+
+void AFPSAIGuard::SetGuardState(EAIState NewState)
+{
+	if (GuardState == NewState)
+	{
+		return;
+	}
+
+	GuardState = NewState;
+
+	OnStateChanged(GuardState);
+}
+
+void AFPSAIGuard::RotateTowardsPoint(const FVector& actorLocation, const FVector& targetLocation)
+{
+	FVector direction = targetLocation - actorLocation;
+	direction = direction - FVector::DotProduct(direction, FVector::UpVector);
+	direction.Normalize();
+
+	FQuat rotationToAdd = FQuat::FindBetween(GetActorForwardVector(), direction);
+
+	this->AddActorWorldRotation(rotationToAdd);
+
 }
 
 // Called every frame
@@ -60,6 +110,26 @@ void AFPSAIGuard::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	const FVector& ActorLocation = GetActorLocation();
+
+	const FVector& TargetLocation = Destination[0]->GetActorLocation();
+
+	RotateTowardsPoint(ActorLocation, TargetLocation);
+
+	FVector Direction = (TargetLocation - ActorLocation);
+	
+	Direction.Normalize();
+
+	SetActorLocation(GetActorLocation() + (Direction * DeltaTime * speed));
+
+	float dist = FVector::Distance(GetActorLocation(), TargetLocation);
+
+	if (dist < 20.f)
+	{
+		
+	}
+
+	
 }
 
 

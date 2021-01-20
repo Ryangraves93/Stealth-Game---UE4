@@ -5,9 +5,18 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Components/PawnNoiseEmitterComponent.h"
+#include "Engine/TargetPoint.h"
 #include "FPSAIGuard.generated.h"
 
 class UPawnSensingComponent;
+
+UENUM(BlueprintType)
+enum class EAIState : uint8
+{
+	Idle,
+	Suspicious,
+	Alerted
+};
 
 UCLASS()
 class FPSGAME_API AFPSAIGuard : public ACharacter
@@ -37,6 +46,21 @@ protected:
 	void ResetOrientation();
 
 	FTimerHandle TimerHandle_ResetOrientation;
+
+	EAIState GuardState;
+
+	void SetGuardState(EAIState NewState);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "AI")
+	void OnStateChanged(EAIState NewState);
+
+	UPROPERTY(EditAnywhere, Category = "Patrol")
+	TArray<ATargetPoint*> Destination;
+
+	void RotateTowardsPoint(const FVector& playerLocation, const FVector& targetLocation);
+
+	UPROPERTY(EditAnywhere, Category = "Patrol")
+	float speed;
 
 public:	
 	// Called every frame
