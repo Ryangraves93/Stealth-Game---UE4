@@ -5,6 +5,7 @@
 #include "Animation/AnimInstance.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Net/UnrealNetwork.h"
 #include "Kismet/GameplayStatics.h"
 
 
@@ -47,10 +48,23 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
 }
 
-
-void AFPSCharacter::Fire()
+void AFPSCharacter::Tick(float DeltaTime)
 {
-	// try and fire a projectile
+	Super::Tick(DeltaTime);
+
+	if (!IsLocallyControlled())
+	{
+		//FRotator NewRot = Mesh1PComponent->RelativeRotation;
+		//NewRot.Pitch = RemoteViewPitch;
+
+		//Mesh1PComponent->SetRelativeRotation(NewRot);
+	}
+	
+}
+
+
+void AFPSCharacter::ServerFire_Implementation()
+{
 	if (ProjectileClass)
 	{
 		FVector MuzzleLocation = GunMeshComponent->GetSocketLocation("Muzzle");
@@ -64,6 +78,18 @@ void AFPSCharacter::Fire()
 		// spawn the projectile at the muzzle
 		GetWorld()->SpawnActor<AFPSProjectile>(ProjectileClass, MuzzleLocation, MuzzleRotation, ActorSpawnParams);
 	}
+}
+
+bool AFPSCharacter::ServerFire_Validate()
+{
+	return true;
+}
+
+void AFPSCharacter::Fire()
+{
+	ServerFire();
+	// try and fire a projectile
+
 
 	// try and play the sound if specified
 	if (FireSound)
@@ -101,4 +127,11 @@ void AFPSCharacter::MoveRight(float Value)
 		// add movement in that direction
 		AddMovementInput(GetActorRightVector(), Value);
 	}
+}
+
+void AFPSCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AFPSCharacter, bIsCarryingObjective);
 }

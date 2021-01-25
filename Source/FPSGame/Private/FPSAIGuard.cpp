@@ -5,6 +5,7 @@
 #include "Perception/PawnSensingComponent.h"
 #include "FPSGameMode.h"
 #include "GameFramework/Actor.h"
+#include "Net/UnrealNetwork.h"
 #include "DrawDebugHelpers.h"
 
 // Sets default values
@@ -27,6 +28,7 @@ void AFPSAIGuard::BeginPlay()
 	Super::BeginPlay();
 	
 	OriginalRotation = GetActorRotation();
+	TargetLocation = Destination[0]->GetActorLocation();
 }
 
 void AFPSAIGuard::OnPawnSeen(APawn* SeenPawn)
@@ -89,8 +91,7 @@ void AFPSAIGuard::SetGuardState(EAIState NewState)
 	}
 
 	GuardState = NewState;
-
-	OnStateChanged(GuardState);
+	OnRep_GuardState();
 }
 
 void AFPSAIGuard::RotateTowardsPoint(const FVector& actorLocation, const FVector& targetLocation)
@@ -105,19 +106,15 @@ void AFPSAIGuard::RotateTowardsPoint(const FVector& actorLocation, const FVector
 
 }
 
-// Called every frame
-void AFPSAIGuard::Tick(float DeltaTime)
+void AFPSAIGuard::MoveToNextPatrolPoint(float DeltaTime)
+
 {
-	Super::Tick(DeltaTime);
-
 	const FVector& ActorLocation = GetActorLocation();
-
-	const FVector& TargetLocation = Destination[0]->GetActorLocation();
 
 	RotateTowardsPoint(ActorLocation, TargetLocation);
 
 	FVector Direction = (TargetLocation - ActorLocation);
-	
+
 	Direction.Normalize();
 
 	SetActorLocation(GetActorLocation() + (Direction * DeltaTime * speed));
@@ -126,10 +123,39 @@ void AFPSAIGuard::Tick(float DeltaTime)
 
 	if (dist < 20.f)
 	{
-		
+		if (TargetLocation == Destination[0]->GetActorLocation())
+		{
+			RotateTowardsPoint(ActorLocation, Destination[1]->GetActorLocation());
+			TargetLocation = Destination[1]->GetActorLocation();
+		}
+		else
+		{
+			RotateTowardsPoint(ActorLocation, Destination[0]->GetActorLocation());
+			TargetLocation = Destination[0]->GetActorLocation();
+		}
 	}
+
+}
+
+void AFPSAIGuard::OnRep_GuardState()
+{
+	OnStateChanged(GuardState);
+}
+
+// Called every frame
+void AFPSAIGuard::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
 
 	
 }
+
+void AFPSAIGuard::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AFPSAIGuard, GuardState);
+}
+
 
 

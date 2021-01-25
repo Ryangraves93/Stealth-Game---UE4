@@ -47,8 +47,6 @@ protected:
 
 	FTimerHandle TimerHandle_ResetOrientation;
 
-	EAIState GuardState;
-
 	void SetGuardState(EAIState NewState);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "AI")
@@ -61,6 +59,27 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Patrol")
 	float speed;
+
+	UPROPERTY(EditInstanceOnly, Category = "AI")
+	bool patrol;
+
+	UPROPERTY(EditInstanceOnly, Category = "AI", meta = (EditCondition = "bpatrol"))
+	AActor* FirstPatrolPoint;
+
+	UPROPERTY(EditInstanceOnly, Category = "AI", meta = (EditCondition = "bpatrol"))
+	AActor* SecondPatrolPoint;
+
+	AActor* CurrentPatrolPoint;
+
+	void MoveToNextPatrolPoint(float);
+
+	FVector TargetLocation;
+
+	UPROPERTY(ReplicatedUsing=OnRep_GuardState)
+	EAIState GuardState;
+
+	UFUNCTION()
+	void OnRep_GuardState();
 
 public:	
 	// Called every frame

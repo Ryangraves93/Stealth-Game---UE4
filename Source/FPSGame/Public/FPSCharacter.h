@@ -54,6 +54,9 @@ public:
 
 protected:
 	
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerFire();
+
 	/** Fires a projectile. */
 	void Fire();
 
@@ -72,8 +75,10 @@ public:
 	/** Returns FirstPersonCameraComponent subobject **/
 	UCameraComponent* GetFirstPersonCameraComponent() const { return CameraComponent; }
 
-	UPROPERTY(BlueprintReadOnly, Category = "Gameplay")
+	UPROPERTY(Replicated,BlueprintReadOnly, Category = "Gameplay")
 	bool bIsCarryingObjective;
+
+	virtual void Tick(float DeltaTime);
 
 };
 
